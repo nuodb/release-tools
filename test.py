@@ -70,7 +70,9 @@ class RelmanTest(unittest.TestCase):
     @classmethod
     def clean_tmp(cls, path=tmp_dir):
         # invoke 'git clean' on real repo to clean up test files
-        run('git', 'clean', '-Xff', '--', path)
+        test_file = os.path.abspath(__file__)
+        test_dir = os.path.dirname(test_file)
+        run('git', 'clean', '-Xff', '--', path, cwd=test_dir)
 
     @classmethod
     def setUpClass(cls):
