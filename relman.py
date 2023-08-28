@@ -45,14 +45,12 @@ def run(*args, **kwargs):
 
 class GitRepo(object):
 
-    def __init__(self, paths):
-        self.releasables = []
-        for path in paths:
-            self.releasables.append(Releasable(path))
+    def __init__(self, path):
+        self.releasable = Releasable(path)
 
     @classmethod
     def get_tags(cls, ref):
-        return run('git', 'tag', '--sort=committerdate', '--merged', ref).split()
+        return run('git', 'tag', '--sort=version:refname', '--merged', ref).split()
 
     @classmethod
     def get_tags_on(cls, ref='HEAD'):
@@ -127,49 +125,45 @@ class GitRepo(object):
         conventions described in README.md.
         """
 
-        for releasable in self.releasables:
-            release_branch = releasable.get_release_branch()
-            previous = None
-            LOGGER.debug('Checking release tags for branch %s', release_branch.branch)
-            # check that current version matches branch conventions; main cannot have non-0 patch releases, and release branches cannot have non-matching branches
-            release_branch.check_current_version(releasable)
-            for release, is_head in releasable.get_releases():
-                # check that the current version is larger than tag, or identical to it if HEAD is tagged
-                release.check_version(is_head)
-                if check_all:
-                    # check that tag matches branch conventions
-                    release_branch.check_release(release)
-                    # check that release tags are in ascending order
-                    if previous is not None:
-                        previous.check_before(release)
-                    previous = release
+        release_branch = self.releasable.get_release_branch()
+        previous = None
+        LOGGER.debug('Checking release tags for branch %s', release_branch.branch)
+        # check that current version matches branch conventions; main cannot have non-0 patch releases, and release branches cannot have non-matching branches
+        release_branch.check_current_version(self.releasable)
+        for release, is_head in self.releasable.get_releases():
+            # check that the current version is larger than tag, or identical to it if HEAD is tagged
+            release.check_version(is_head)
+            if check_all:
+                # check that tag matches branch conventions
+                release_branch.check_release(release)
+                # check that release tags are in ascending order in commit history
+                if previous is not None:
+                    previous.check_before(release)
+                previous = release
 
     def show_head_versions(self, semver=False):
         for tag in self.get_tags_on():
-            for releasable in self.releasables:
-                release = releasable.get_release(tag)
-                if release is not None:
-                    sys.stdout.write(release.version + '\n')
-                    # this is also the most recent release of <major>.<minor>
-                    if semver:
-                        sys.stdout.write('{}.{}\n'.format(release.semver[0], release.semver[1]))
-                        # if we are on main, then this is also the most recent
-                        # release of <major>
-                        current_branch = GitRepo.get_current_branch()
-                        if current_branch == GitRepo.get_default_branch():
-                            sys.stdout.write('{}\n'.format(release.semver[0]))
+            release = self.releasable.get_release(tag)
+            if release is not None:
+                sys.stdout.write(release.version + '\n')
+                # this is also the most recent release of <major>.<minor>
+                if semver:
+                    sys.stdout.write('{}.{}\n'.format(release.semver[0], release.semver[1]))
+                    # if we are on main, then this is also the most recent
+                    # release of <major>
+                    current_branch = GitRepo.get_current_branch()
+                    if current_branch == GitRepo.get_default_branch():
+                        sys.stdout.write('{}\n'.format(release.semver[0]))
 
 
     def show_changelogs(self):
-        for releasable in self.releasables:
-            release_desc = releasable.version
-            if releasable.tag_prefix != 'v':
-                release_desc += ' of {}'.format(releasable.path)
-            LOGGER.info('Generating changelog for version %s:\n%s', release_desc, releasable.get_changelog())
+        release_desc = self.releasable.version
+        if self.releasable.tag_prefix != 'v':
+            release_desc += ' of {}'.format(self.releasable.path)
+        LOGGER.info('Generating changelog for version %s:\n%s', release_desc, self.releasable.get_changelog())
 
     def create_changelogs(self, commit=False):
-        for releasable in self.releasables:
-            releasable.create_changelog(commit)
+        self.releasable.create_changelog(commit)
 
     def tag_releases(self):
         # check current version
@@ -180,14 +174,13 @@ class GitRepo(object):
         if uncommitted_changes.strip() != '':
             raise RuntimeError('Cannot create release tag because there are uncommitted changes:\n' + uncommitted_changes)
 
-        for releasable in self.releasables:
-            # make sure we are on main or a release branch
-            release_branch = releasable.get_release_branch()
-            if release_branch.branch != self.get_default_branch() and release_branch.semver is None:
-                raise RuntimeError('Cannot create release tag on branch ' + release_branch.branch)
+        # make sure we are on main or a release branch
+        release_branch = self.releasable.get_release_branch()
+        if release_branch.branch != self.get_default_branch() and release_branch.semver is None:
+            raise RuntimeError('Cannot create release tag on branch ' + release_branch.branch)
 
-            # tag HEAD with the release tag
-            GitRepo.tag(releasable.tag_prefix + releasable.version)
+        # tag HEAD with the release tag
+        GitRepo.tag(self.releasable.tag_prefix + self.releasable.version)
 
     def create_branches(self):
         # check current version
@@ -198,23 +191,21 @@ class GitRepo(object):
         if current_branch != GitRepo.get_default_branch():
             raise RuntimeError('Cannot create a release branch off of branch ' + current_branch)
 
-        for releasable in self.releasables:
-            # get latest release
-            release = None
-            on_head = False
-            for release, on_head in releasable.get_releases():
-                pass
-            # make sure release exists and is on HEAD
-            if release is None:
-                raise RuntimeError('No release for "{}"'.format(releasable.path))
-            if not on_head:
-                raise RuntimeError('Latest release tag {} is not on HEAD'.format(release.tag))
-            # make sure patch version is 0
-            if release.semver[-1] != 0:
-                raise RuntimeError('Cannot create release branch from non-0 patch release tag ' + release.tag)
-            # create release branch
-            GitRepo.create_branch('{}{}.{}-dev'.format(releasable.tag_prefix, *release.semver[:-1]))
-
+        # get latest release
+        release = None
+        on_head = False
+        for release, on_head in self.releasable.get_releases():
+            pass
+        # make sure release exists and is on HEAD
+        if release is None:
+            raise RuntimeError('No release for "{}"'.format(self.releasable.path))
+        if not on_head:
+            raise RuntimeError('Latest release tag {} is not on HEAD'.format(release.tag))
+        # make sure patch version is 0
+        if release.semver[-1] != 0:
+            raise RuntimeError('Cannot create release branch from non-0 patch release tag ' + release.tag)
+        # create release branch
+        GitRepo.create_branch('{}{}.{}-dev'.format(self.releasable.tag_prefix, *release.semver[:-1]))
 
 
 class Changelog(object):
@@ -249,7 +240,7 @@ class Changelog(object):
         return cls.REPO_URL
 
     RE_COMMIT_MSG = r'(.*) \(#([0-9]+)\)$'
-    CHANGELOG_ENTRY_FMT_BASIC = '- [{1}]({0}/commit/{1}) {2}'
+    CHANGELOG_ENTRY_FMT_BASIC = '- [`{1}`]({0}/commit/{1}) {2}'
     CHANGELOG_ENTRY_FMT = CHANGELOG_ENTRY_FMT_BASIC + ' [\\#{3}]({0}/pull/{3})'
     CHANGELOG_FMT = """
 # Changelog [{current}]({repo_url}/tree/{current}) ({date})
@@ -424,9 +415,9 @@ class ReleaseTag(object):
             raise RuntimeError('Release tag {} has later version than current version {}'.format(self.tag, self.releasable.version))
 
     def check_before(self, release_after):
-        # check that self is less than release tag on later commit
-        if self.semver > release_after.semver:
-            raise RuntimeError('Release tag {} has later version than subsequent release tag {}'.format(self.tag, release_after.tag))
+        # check that self is before release tag in commit history
+        if self.tag not in GitRepo.get_tags(release_after.tag):
+            raise RuntimeError('Release tag {} appears after {} in commit history'.format(self.tag, release_after.tag))
 
 
 class ReleaseBranch(object):
@@ -486,7 +477,7 @@ def main():
     if args.debug:
         LOGGER.setLevel(logging.DEBUG)
 
-    git = GitRepo([args.path])
+    git = GitRepo(args.path)
     if args.check_current or args.check_tags:
         git.check_current(args.check_tags)
 

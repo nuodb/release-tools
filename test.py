@@ -287,7 +287,7 @@ directory = {}
         self.runcmd('git', 'tag', 'v0.9.0', 'HEAD~')
         self.check_negative(
                 lambda: self.relman('--check-tags'),
-                'Release tag v1.0.0 has later version than subsequent release tag v0.9.0')
+                'Release tag v0.9.0 appears after v1.0.0 in commit history')
 
     def testBranchConventions(self):
         # negative test: release tag to non-0 patch version on main branch
@@ -334,6 +334,26 @@ directory = {}
         self.set_version('1.0.1')
         self.commit('Bumping patch version of root project')
         self.relman('--create-changelog', '--commit', '--tag')
+
+    def testShowVersion(self):
+        # create change, commit, release tag, and release branch
+        self.relman('--create-changelog', '--commit', '--tag', '--branch')
+
+        # check version and semver output
+        self.assertEqual('1.0.0', self.relman('--show-head-version').strip())
+        self.assertEqual(['1.0.0', '1.0', '1'], self.relman('--show-head-semver').split())
+
+        # switch to release branch
+        self.runcmd('git', 'checkout', 'v1.0-dev')
+
+        # bump patch version
+        self.set_version('1.0.1')
+        self.commit('Bumping patch version')
+        self.relman('--create-changelog', '--commit', '--tag')
+
+        # check version and semver output
+        self.assertEqual('1.0.1', self.relman('--show-head-version').strip())
+        self.assertEqual(['1.0.1', '1.0'], self.relman('--show-head-semver').split())
 
 
 if __name__ == '__main__':
