@@ -49,12 +49,20 @@ class GitRepo(object):
         self.releasable = Releasable(path)
 
     @classmethod
+    def checkout(cls, ref):
+        run('git', 'checkout', ref)
+
+    @classmethod
     def get_tags(cls, ref):
         return run('git', 'tag', '--sort=version:refname', '--merged', ref).split()
 
     @classmethod
     def get_tags_on(cls, ref='HEAD'):
         return run('git', 'tag', '--points-at', ref).split()
+
+    @classmethod
+    def get_commit(cls, ref='HEAD'):
+        return run('git', 'rev-parse', ref).strip()
 
     @classmethod
     def get_current_branch(cls):
@@ -87,8 +95,16 @@ class GitRepo(object):
 
     @classmethod
     def get_branches(cls):
-        for branch in run('git', 'branch').split():
-            if branch != '*':
+        for branch in run('git', 'branch').split('\n'):
+            branch = branch.strip()
+            if not branch.startswith('*'):
+                yield branch
+
+    @classmethod
+    def get_remote_branches(cls, remote='origin'):
+        for branch in run('git', 'branch', '--remotes').split('\n'):
+            branch = branch.strip()
+            if not branch.startswith(remote + '/HEAD -> '):
                 yield branch
 
     @classmethod
@@ -356,9 +372,25 @@ class Releasable(object):
 
     REL_BRANCH_PATTERN = r'([0-9]+)\.([0-9]+)-dev$'
 
+    def find_head_ref(self):
+        commit = GitRepo.get_commit()
+        for branch in GitRepo.get_branches():
+            if commit == GitRepo.get_commit(branch):
+                return branch
+        for remote in GetRepo.get_remotes():
+            for rb in GitRepo.get_remote_branches(remote):
+                if commit == GitRepo.get_commit(rb):
+                    branch = rb.lstrip(remote + '/')
+                    return branch
+
     def get_release_branch(self, branch=None):
         if branch is None:
             branch = GitRepo.get_current_branch()
+        if branch == 'HEAD':
+            head_ref = self.find_head_ref()
+            if head_ref is not None:
+                branch = head_ref
+                GitRepo.checkout(branch)
         if branch.startswith(self.tag_prefix):
             version = branch.lstrip(self.tag_prefix)
             m = re.match(self.REL_BRANCH_PATTERN, version)

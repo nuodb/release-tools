@@ -313,7 +313,12 @@ directory = {}
         # revert version change and switch to release branch
         self.runcmd('git', 'reset', 'HEAD', '--hard')
         self.runcmd('git', 'checkout', 'v1.0-dev')
+        self.runcmd('git', 'commit', '--allow-empty', '-m', 'Branching v1.0-dev')
 
+        self.relman('--check-tags')
+
+        # detach head and check again
+        self.runcmd('git', 'checkout', '--detach', 'HEAD')
         self.relman('--check-tags')
 
         # negative test: set mismatching version on release branch
