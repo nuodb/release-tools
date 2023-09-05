@@ -102,7 +102,7 @@ class GitRepo(object):
 
     @classmethod
     def get_remotes(cls):
-        for remote in run('git', 'remotes').split():
+        for remote in run('git', 'remote').split():
             yield remote
 
     @classmethod
