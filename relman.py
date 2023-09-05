@@ -377,7 +377,7 @@ class Releasable(object):
         for branch in GitRepo.get_branches():
             if commit == GitRepo.get_commit(branch):
                 return branch
-        for remote in GetRepo.get_remotes():
+        for remote in GitRepo.get_remotes():
             for rb in GitRepo.get_remote_branches(remote):
                 if commit == GitRepo.get_commit(rb):
                     branch = rb.lstrip(remote + '/')
