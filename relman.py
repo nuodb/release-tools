@@ -97,14 +97,14 @@ class GitRepo(object):
     def get_branches(cls):
         for branch in run('git', 'branch').split('\n'):
             branch = branch.strip()
-            if not branch.startswith('*'):
+            if len(branch) != 0 and not branch.startswith('*'):
                 yield branch
 
     @classmethod
     def get_remote_branches(cls, remote='origin'):
         for branch in run('git', 'branch', '--remotes').split('\n'):
             branch = branch.strip()
-            if not branch.startswith(remote + '/HEAD -> '):
+            if len(branch) != 0 and not branch.startswith(remote + '/HEAD -> '):
                 yield branch
 
     @classmethod
