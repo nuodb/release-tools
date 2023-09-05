@@ -101,6 +101,11 @@ class GitRepo(object):
                 yield branch
 
     @classmethod
+    def get_remotes(cls):
+        for remote in run('git', 'remotes').split():
+            yield remote
+
+    @classmethod
     def get_remote_branches(cls, remote='origin'):
         for branch in run('git', 'branch', '--remotes').split('\n'):
             branch = branch.strip()
