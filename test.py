@@ -126,7 +126,7 @@ directory = {}
         # aggregate coverage data and generate html coverage report if coverage is enabled
         if cls.coverage_enabled:
             cls.runcmd(sys.executable, '-m', 'coverage', 'html')
-            cls.runcmd(sys.executable, '-m', 'coverage', 'report', '--fail-under=' + str(cls.MIN_COVERAGE_PCT))
+            cls.runcmd(sys.executable, '-m', 'coverage', 'report', '--include=*/relman.py', '--fail-under=' + str(cls.MIN_COVERAGE_PCT))
 
     def check_changelogs(self, root_changelog, subproject_changelog, is_show=False):
         # changelog for root project should include all commits
