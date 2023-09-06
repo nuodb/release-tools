@@ -15,11 +15,11 @@ jobs:
         run: |
           git config --global user.name "Testy McTesterson"
           git config --global user.email "tmctesterson@users.noreply.github.com"
-      - name: Install pip and Python packages
-        run: |
-          apt update
-          apt install -y python3-pip
-          pip install pylint pytest coverage
+      - uses: actions/setup-python@v4
+        with:
+          cache: 'pip' # caching pip dependencies
+      - name: Install Python dependencies
+        run: pip install pylint pytest coverage
       - name: Invoke pylint
         run: pylint -E *.py
       - name: Invoke pytest
