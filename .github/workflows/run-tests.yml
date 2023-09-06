@@ -15,5 +15,22 @@ jobs:
         run: |
           git config --global user.name "Testy McTesterson"
           git config --global user.email "tmctesterson@users.noreply.github.com"
-      - name: Invoke test.py
-        run: ./test.py
+      - name: Install pip and Python packages
+        run: |
+          apt update
+          apt install -y python3-pip
+          pip install pylint pytest coverage
+      - name: Invoke pylint
+        run: pylint -E *.py
+      - name: Invoke pytest
+        run: pytest test.py --junit-xml=results.xml
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: results.xml
+          path: results.xml
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage_info/html
