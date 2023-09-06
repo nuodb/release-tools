@@ -43,7 +43,7 @@ class RelmanTest(unittest.TestCase):
     def relman(self, *args, **kwargs):
         relman_script = self.path('release', 'relman.py')
         if self.coverage_enabled:
-            args = (sys.executable, '-m', 'coverage', 'run', '-a', relman_script) + args
+            args = (sys.executable, '-m', 'coverage', 'run', '-a', relman_script, '--include=*/relman.py') + args
             return self.runcmd(*args, **kwargs)
         else:
             return self.runcmd(sys.executable, relman_script, *args, **kwargs)
@@ -126,7 +126,7 @@ directory = {}
         # aggregate coverage data and generate html coverage report if coverage is enabled
         if cls.coverage_enabled:
             cls.runcmd(sys.executable, '-m', 'coverage', 'html')
-            cls.runcmd(sys.executable, '-m', 'coverage', 'report', '--include=*/relman.py', '--fail-under=' + str(cls.MIN_COVERAGE_PCT))
+            cls.runcmd(sys.executable, '-m', 'coverage', 'report', '--fail-under=' + str(cls.MIN_COVERAGE_PCT))
 
     def check_changelogs(self, root_changelog, subproject_changelog, is_show=False):
         # changelog for root project should include all commits
