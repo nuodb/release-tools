@@ -43,7 +43,7 @@ class RelmanTest(unittest.TestCase):
     def relman(self, *args, **kwargs):
         relman_script = self.path('release', 'relman.py')
         if self.coverage_enabled:
-            args = (sys.executable, '-m', 'coverage', 'run', '-a', relman_script, '--include=*/relman.py') + args
+            args = (sys.executable, '-m', 'coverage', 'run', '--include=*/relman.py', '-a', relman_script) + args
             return self.runcmd(*args, **kwargs)
         else:
             return self.runcmd(sys.executable, relman_script, *args, **kwargs)
