@@ -17,6 +17,7 @@ jobs:
           git config --global user.email "tmctesterson@users.noreply.github.com"
       - uses: actions/setup-python@v4
         with:
+          python-version: '3.10'
           cache: 'pip' # caching pip dependencies
       - name: Install Python dependencies
         run: pip install pylint pytest coverage
@@ -24,13 +25,3 @@ jobs:
         run: pylint -E *.py
       - name: Invoke pytest
         run: pytest test.py --junit-xml=results.xml
-      - name: Upload test results
-        uses: actions/upload-artifact@v3
-        with:
-          name: results.xml
-          path: results.xml
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage
-          path: coverage_info/html
