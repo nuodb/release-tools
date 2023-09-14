@@ -132,7 +132,7 @@ class GitRepo(object):
         if 'main' in cls.get_branches():
             return 'main'
         # otherwise, assume master
-        return 'master'
+        return 'hal/deploy'
 
     @classmethod
     def create_branch(cls, branch):
